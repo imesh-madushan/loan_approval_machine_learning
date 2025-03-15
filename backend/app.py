@@ -5,7 +5,7 @@ import flask
 
 # Model Predict loan approval
 model_1 = pk.load(open('model_1.pkl','rb'))
-scaler_1 = pk.load(open('scaler_1.pkl','rb'))
+# scaler_1 = pk.load(open('scaler_1.pkl','rb'))
 
 # Model Loan Amount recommendation
 model_2 = pk.load(open('model_2.pkl','rb'))
@@ -28,7 +28,7 @@ app.config["DEBUG"] = True
 def welcome():
     return 'Welcome All'
 
-@app.route('/check-approval',methods=["Get"])
+@app.route('/check-approval',methods=["POST"])
 def predict_loan_approval():
     col_oder = ['no_of_dependents','education','self_employed','income_annum','loan_amount','loan_term','cibil_score','assets']
 
@@ -44,9 +44,8 @@ def predict_loan_approval():
             }),400
         
     new_data = new_data[col_oder] # reoder the columns as per the model trained
-    new_data_scaled = scaler_1.transform(new_data)
 
-    prediction = model_1.predict(new_data_scaled)
+    prediction = model_1.predict(new_data)
     if prediction[0] == 1:
         #check if requested loan is a fraud
         if check_fraud(new_data) == True:
@@ -64,7 +63,7 @@ def predict_loan_approval():
             'approved': False
         })
 
-@app.route('/recommend-loan',methods=["Get"])
+@app.route('/recommend-loan',methods=["POST"])
 def recommend_loan_amount():
     col_oder = ['income_annum', 'cibil_score', 'assets', 'loan_term', 'no_of_dependents', 'education', 'self_employed', 'loan_status']
 
@@ -87,7 +86,7 @@ def recommend_loan_amount():
     return str(prediction[0])
 
 
-@app.route('/interest-rate',methods=["Get"])
+@app.route('/interest-rate',methods=["POST"])
 def cluster_number():
     col_oder = ["income_annum", "loan_amount"]
 
@@ -136,13 +135,19 @@ def cluster_number():
         })
 
 
-@app.route('/check-fraud',methods=["Get"])
+@app.route('/check-fraud',methods=["POST"])
 def fraud_detection():
     req = flask.request.get_json()
     new_data = pd.DataFrame(req,index=[0])
 
-    return str(check_fraud(new_data))
-
+    if check_fraud(new_data) == True:
+        return flask.jsonify({
+            'fraud': True
+        })
+    else:
+        return flask.jsonify({
+            'fraud': False
+        })
 
 # function to check if fraud or not
 def check_fraud(data):
